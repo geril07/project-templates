@@ -8,7 +8,7 @@ export class ApiResponseError extends Error {
   data: ApiErrorResponse
 
   constructor(err: HTTPError, data: ApiErrorResponse) {
-    super(data.detail)
+    super(data.message)
     this.name = 'ApiResponseError'
     this.err = err
     this.data = data
@@ -18,15 +18,15 @@ export class ApiResponseError extends Error {
 export const isDataApiErrorResponse = (
   data?: unknown,
 ): data is ApiErrorResponse => {
-  if (isPlainObject(data) && 'detail' in data) return true
+  if (isPlainObject(data) && 'message' in data) return true
 
   return false
 }
 
-export const getDetailFromApiResponseError = (err?: unknown) => {
+export const getMessageFromApiResponseError = (err?: unknown) => {
   if (!(err instanceof ApiResponseError)) return
 
-  return err.data.detail
+  return err.data.message
 }
 
 export const throwApiResponseErrFromKyErr = async (err?: unknown) => {

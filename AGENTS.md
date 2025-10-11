@@ -305,45 +305,28 @@ Rationale
 - Options-first: return `queryOptions`/`mutationOptions` to keep hooks/UI thin.
 - Testable: pure option factories are easy to unit test.
 - Reusable: same options can be used in loaders, prefetching, or components.
+- Error normalization: wrap Ky `HTTPError` via `throwApiResponseErrFromKyErr` inside service functions so consumers receive `ApiResponseError` with a friendly `message`.
 
 Example: products (inline query keys)
 
 ```
 // src/features/products/api/queryOptions.ts
 import { queryOptions } from '@tanstack/react-query'
-import ky from '@/lib/ky'
-import { apiBaseUrl } from '@/constants/api'
-import { throwApiResponseErrFromKyErr } from '@/utils/errors/apiErrorResponse'
+import { fetchAllProducts, fetchProductById } from '@/features/products/productService'
 
 export interface Product { id: string; name: string }
 
 export const listProductsOptions = (params?: { q?: string }) =>
   queryOptions({
     queryKey: ['products', 'list', params] as const,
-    queryFn: async (): Promise<Product[]> => {
-      try {
-        return await ky
-          .get(`${apiBaseUrl}/products`, { searchParams: params })
-          .json<Product[]>()
-      } catch (e) {
-        await throwApiResponseErrFromKyErr(e)
-        throw e
-      }
-    },
+    queryFn: async (): Promise<Product[]> => fetchAllProducts(params),
     staleTime: 5 * 60 * 1000,
   })
 
 export const productDetailOptions = (id: string) =>
   queryOptions({
     queryKey: ['products', 'detail', id] as const,
-    queryFn: async (): Promise<Product> => {
-      try {
-        return await ky.get(`${apiBaseUrl}/products/${id}`).json<Product>()
-      } catch (e) {
-        await throwApiResponseErrFromKyErr(e)
-        throw e
-      }
-    },
+    queryFn: async (): Promise<Product> => fetchProductById(id),
   })
 ```
 
@@ -382,7 +365,7 @@ export const useProducts = (params?: { q?: string }) => {
 Notes
 
 - Keep domain-specific types under `src/features/<domain>/types/`.
-- Surface errors via `ApiResponseError` and extract `detail` with `getDetailFromApiResponseError` in UI.
+- Surface errors via `ApiResponseError` and extract `message` with `getMessageFromApiResponseError` in UI.
 - Prefer `interface` for request/response shapes; use `type` for unions or Zod `z.infer` outputs.
 - Declare query keys inline in `queryOptions.ts` to keep things simple; introduce a dedicated `keys.ts` only if keys become complex and shared across multiple modules.
 
@@ -426,39 +409,29 @@ Example: products service (function-first, flat)
 
 ```
 // src/features/products/productService.ts
-import ky from '@/lib/ky'
-import { apiBaseUrl } from '@/constants/api'
+import { apiClient } from '@/lib/ky'
 import { throwApiResponseErrFromKyErr } from '@/utils/errors/apiErrorResponse'
 
 export interface Product { id: string; name: string }
 export interface CreateProductInput { name: string }
 
-export const fetchAllProducts = async (params?: { q?: string }): Promise<Product[]> => {
-  try {
-    return await ky.get(`${apiBaseUrl}/products`, { searchParams: params }).json<Product[]>()
-  } catch (e) {
-    await throwApiResponseErrFromKyErr(e)
-    throw e
-  }
-}
+export const fetchAllProducts = async (params?: { q?: string }): Promise<Product[]> =>
+  apiClient
+    .get('products', { searchParams: params })
+    .json<Product[]>()
+    .catch(throwApiResponseErrFromKyErr)
 
-export const fetchProductById = async (id: string): Promise<Product> => {
-  try {
-    return await ky.get(`${apiBaseUrl}/products/${id}`).json<Product>()
-  } catch (e) {
-    await throwApiResponseErrFromKyErr(e)
-    throw e
-  }
-}
+export const fetchProductById = async (id: string): Promise<Product> =>
+  apiClient
+    .get(`products/${id}`)
+    .json<Product>()
+    .catch(throwApiResponseErrFromKyErr)
 
-export const createProduct = async (input: CreateProductInput): Promise<Product> => {
-  try {
-    return await ky.post(`${apiBaseUrl}/products`, { json: input }).json<Product>()
-  } catch (e) {
-    await throwApiResponseErrFromKyErr(e)
-    throw e
-  }
-}
+export const createProduct = async (input: CreateProductInput): Promise<Product> =>
+  apiClient
+    .post('products', { json: input })
+    .json<Product>()
+    .catch(throwApiResponseErrFromKyErr)
 
 // Optional: grouped export if you prefer an object
 export const productService = {
@@ -736,3 +709,127 @@ Example
 // src/features/products/utils/formatProductName.ts
 export const formatProductName = (name: string) => name.trim()
 ```
+
+## 13. Components Structure
+
+Applies to both global components under `src/components/` and per‑feature components under `src/features/<domain>/components/`.
+
+Keep it simple and flat. Use one‑component‑per‑folder. Reserve `ui/` for small, reusable primitives. Place feature‑specific building blocks directly under `components/`.
+
+Layouts
+
+- Recommended (fewer top-level folders):
+```
+src/components/                   // cross‑feature components (shared UI)
+├── ui/                           // primitives used by many features
+│   ├── Button/
+│   │   └── Button.tsx
+│   └── index.ts
+├── Modal/
+│   └── Modal.tsx
+└── index.ts
+
+src/features/<domain>/components/
+├── ui/                          // presentational atoms/molecules (no data fetching)
+│   ├── Button/
+│   │   ├── Button.tsx
+│   │   ├── Button.test.tsx      // optional
+│   │   └── Button.css           // optional (or .module.css/.ts)
+│   ├── TextField/
+│   │   └── TextField.tsx
+│   └── index.ts
+├── ProductCard/
+│   └── ProductCard.tsx
+├── ProductList/
+│   └── ProductList.tsx
+└── index.ts                     // optional barrel for the feature's components
+```
+
+- Alternative (many forms):
+```
+src/features/<domain>/components/
+├── ui/
+├── composite/
+└── form/            // top-level when forms dominate the feature
+```
+
+Guidelines
+- Where to put components
+  - `src/components/`: cross‑feature, reusable components; keep primitives in `ui/`.
+  - `src/features/<domain>/components/`: domain‑specific UI; keep primitives in local `ui/`; place larger building blocks at the folder root (flat).
+- `ui/`: stateless/pure components; accessibility first; no feature hooks.
+- Prefer arrow function components; type props with `interface`.
+- Expose only what’s used via `index.ts` barrels; avoid deep re‑export chains.
+- If a feature `ui/` primitive becomes cross‑feature, promote it to `src/components/ui/` and update imports.
+
+Examples
+
+```
+// src/components/ui/Button/Button.tsx (global primitive)
+import type { ButtonHTMLAttributes, PropsWithChildren } from 'react'
+
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {}
+
+export const Button = ({ children, ...props }: PropsWithChildren<ButtonProps>) => (
+  <button {...props}>{children}</button>
+)
+```
+
+```
+// src/features/products/components/ProductCard/ProductCard.tsx
+import type { Product } from '@/features/products/types'
+import { Button } from '../ui'
+
+interface ProductCardProps { product: Product; onSelect?: (id: string) => void }
+
+export const ProductCard = ({ product, onSelect }: ProductCardProps) => (
+  <div>
+    <h3>{product.name}</h3>
+    {onSelect ? <Button onClick={() => onSelect(product.id)}>Select</Button> : null}
+  </div>
+)
+```
+
+Notes
+- Share small subcomponents under `ui/`; keep domain‑specific assemblies as flat folders under `components/`.
+- If a page only composes feature components, keep it under `src/pages/` and import from `features/.../components`.
+- Prefer re‑exporting folders via local `index.ts` to provide nice imports like `import { Button } from '@/features/products/components/ui'`.
+
+## 14. Stores
+
+Prefer React Query for server state and local component state for UI. Introduce a client store (e.g., Zustand) only for cross‑component client state that isn’t easily derived from queries/props.
+
+Placement
+- Domain store (recommended): `src/features/<domain>/store/<name>Store.ts`
+- Global store (rare): `src/stores/<name>Store.ts` or `src/lib/state/<name>Store.ts`
+
+Guidelines
+- Keep stores minimal and serializable; avoid duplicating server data that’s already in React Query.
+- Type the store state and actions with `interface` and arrow functions.
+- Expose selector hooks to minimize re‑renders.
+- Consider `persist` middleware only when necessary (e.g., auth/session); document keys and versions.
+
+Example (Zustand, domain‑scoped)
+
+```
+// src/features/products/store/filterStore.ts
+import { create } from 'zustand'
+
+interface ProductFilterState {
+  q: string
+  setQ: (q: string) => void
+}
+
+export const useProductFilterStore = create<ProductFilterState>((set) => ({
+  q: '',
+  setQ: (q) => set({ q }),
+}))
+
+// Usage in a component
+// const q = useProductFilterStore((s) => s.q)
+// const setQ = useProductFilterStore((s) => s.setQ)
+```
+
+Notes
+- If a store becomes widely used across features, move it to `src/stores/` and update imports.
+- Keep business rules in services; use stores only for client UI state and preferences.
