@@ -5,7 +5,7 @@ import { defineConfig, loadEnv } from 'vite'
 import svgr from 'vite-plugin-svgr'
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), 'VITE_APP')
+  const env = loadEnv(mode, process.cwd(), 'VITE')
 
   return {
     define: {
@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => {
       // -----------------------------------------------------------------
       proxy: {
         '/api': {
-          target: env.VITE_APP_API_URL, // e.g. https://api.myapp.com
+          target: env.VITE_API_BASE_URL, // e.g. https://api.myapp.com
           // changeOrigin: true, // needed for virtual hosted sites
           secure: false, // set to true if you use https with a valid cert
           rewrite: (path) => path.replace(/^\/api/, ''), // strip `/api` prefix
