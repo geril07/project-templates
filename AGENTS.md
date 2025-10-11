@@ -18,6 +18,7 @@
 - **Interfaces vs Types**: Prefer `interface` for object shapes, `type` for unions, primitives, tuples.
 - **Functions**: Arrow functions for components/hooks/utilities; `function` only when hoisting or `this` needed.
 - **Error handling**: Typed errors, narrow catches.
+- **Class names**: Use `clsx` when composing class names.
 
 ## 3. Project Structure (high‑level)
 ```

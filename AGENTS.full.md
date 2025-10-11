@@ -736,6 +736,7 @@ Keep it simple and flat. Use one‑component‑per‑folder. Reserve `ui/` for s
 Layouts
 
 - Recommended (fewer top-level folders):
+
 ```
 src/components/                   // cross‑feature components (shared UI)
 ├── ui/                           // primitives used by many features
@@ -763,6 +764,7 @@ src/features/<domain>/components/
 ```
 
 - Alternative (many forms):
+
 ```
 src/features/<domain>/components/
 ├── ui/
@@ -771,6 +773,7 @@ src/features/<domain>/components/
 ```
 
 Guidelines
+
 - Where to put components
   - `src/components/`: cross‑feature, reusable components; keep primitives in `ui/`.
   - `src/features/<domain>/components/`: domain‑specific UI; keep primitives in local `ui/`; place larger building blocks at the folder root (flat).
@@ -778,6 +781,7 @@ Guidelines
 - Prefer arrow function components; type props with `interface`.
 - Expose only what’s used via `index.ts` barrels; avoid deep re‑export chains.
 - If a feature `ui/` primitive becomes cross‑feature, promote it to `src/components/ui/` and update imports.
+- Use `clsx` when composing class names.
 
 Examples
 
@@ -808,6 +812,7 @@ export const ProductCard = ({ product, onSelect }: ProductCardProps) => (
 ```
 
 Notes
+
 - Share small subcomponents under `ui/`; keep domain‑specific assemblies as flat folders under `components/`.
 - If a page only composes feature components, keep it under `src/pages/` and import from `features/.../components`.
 - Prefer re‑exporting folders via local `index.ts` to provide nice imports like `import { Button } from '@/features/products/components/ui'`.
@@ -817,10 +822,12 @@ Notes
 Prefer React Query for server state and local component state for UI. Introduce a client store (e.g., Zustand) only for cross‑component client state that isn’t easily derived from queries/props.
 
 Placement
+
 - Domain store (recommended): `src/features/<domain>/store/<name>Store.ts`
 - Global store (rare): `src/stores/<name>Store.ts` or `src/lib/state/<name>Store.ts`
 
 Guidelines
+
 - Keep stores minimal and serializable; avoid duplicating server data that’s already in React Query.
 - Type the store state and actions with `interface` and arrow functions.
 - Expose selector hooks to minimize re‑renders.
@@ -848,5 +855,6 @@ export const useProductFilterStore = create<ProductFilterState>((set) => ({
 ```
 
 Notes
+
 - If a store becomes widely used across features, move it to `src/stores/` and update imports.
 - Keep business rules in services; use stores only for client UI state and preferences.
