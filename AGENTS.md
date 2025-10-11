@@ -292,13 +292,12 @@ These guidelines apply to all files under this repository. If a more specific `A
 
 ## 7. API Structure (Per Feature)
 
-For each feature, colocate API concerns under `src/features/<domain>/api/` using option factories for TanStack Query. Keep UI/hooks separate from API. Default layout:
+For each feature, colocate API concerns under `src/features/<domain>/api/` using option factories for queries and hook-based mutations. Keep UI/hooks separate from API. Default layout:
 
 ```
 src/features/<domain>/api/
 ├── queryOptions.ts   // Factories for useQuery options
-├── mutations.ts      // Factories for useMutation options
-└── keys.ts           // (Optional) Central query keys
+└── mutations.ts      // useMutation hooks (uses useQueryClient)
 ```
 
 Rationale
@@ -307,30 +306,20 @@ Rationale
 - Testable: pure option factories are easy to unit test.
 - Reusable: same options can be used in loaders, prefetching, or components.
 
-Example: products
-
-```
-// src/features/products/api/keys.ts
-export const productKeys = {
-  all: ['products'] as const,
-  list: (params?: { q?: string }) => [...productKeys.all, 'list', params] as const,
-  detail: (id: string) => [...productKeys.all, 'detail', id] as const,
-}
-```
+Example: products (inline query keys)
 
 ```
 // src/features/products/api/queryOptions.ts
 import { queryOptions } from '@tanstack/react-query'
 import ky from '@/lib/ky'
 import { apiBaseUrl } from '@/constants/api'
-import { productKeys } from './keys'
 import { throwApiResponseErrFromKyErr } from '@/utils/errors/apiErrorResponse'
 
 export interface Product { id: string; name: string }
 
 export const listProductsOptions = (params?: { q?: string }) =>
   queryOptions({
-    queryKey: productKeys.list(params),
+    queryKey: ['products', 'list', params] as const,
     queryFn: async (): Promise<Product[]> => {
       try {
         return await ky
@@ -346,7 +335,7 @@ export const listProductsOptions = (params?: { q?: string }) =>
 
 export const productDetailOptions = (id: string) =>
   queryOptions({
-    queryKey: productKeys.detail(id),
+    queryKey: ['products', 'detail', id] as const,
     queryFn: async (): Promise<Product> => {
       try {
         return await ky.get(`${apiBaseUrl}/products/${id}`).json<Product>()
@@ -360,57 +349,46 @@ export const productDetailOptions = (id: string) =>
 
 ```
 // src/features/products/api/mutations.ts
-import { MutationOptions } from '@tanstack/react-query'
-import ky from '@/lib/ky'
-import { apiBaseUrl } from '@/constants/api'
-import { productKeys } from './keys'
-import { queryClient } from '@/lib/tanstackQuery'
-import { throwApiResponseErrFromKyErr } from '@/utils/errors/apiErrorResponse'
-
-export interface CreateProductInput { name: string }
-export interface Product { id: string; name: string }
-
-export const createProductMutationOptions = (): MutationOptions<
-  Product,
-  unknown,
-  CreateProductInput
-> => ({
-  mutationFn: async (input) => {
-    try {
-      return await ky
-        .post(`${apiBaseUrl}/products`, { json: input })
-        .json<Product>()
-    } catch (e) {
-      await throwApiResponseErrFromKyErr(e)
-      throw e
-    }
-  },
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: productKeys.all })
-  },
-})
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { apiClient } from '@/lib/ky'
+import type { CreateProductInput, Product } from '../types'
+export const useCreateProduct = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: CreateProductInput) =>
+      apiClient.post('products', { json: input }).json<Product>(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] })
+    },
+  })
+}
 ```
 
 Usage in hooks/components
 
 ```
 // src/features/products/hooks/useProducts.ts
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { listProductsOptions } from '../api/queryOptions'
-import { createProductMutationOptions } from '../api/mutations'
+import { useCreateProduct } from '../api/mutations'
 
-export function useProducts(params?: { q?: string }) {
+export const useProducts = (params?: { q?: string }) => {
   const query = useQuery(listProductsOptions(params))
-  const createMutation = useMutation(createProductMutationOptions())
+  const createMutation = useCreateProduct()
   return { ...query, createMutation }
 }
 ```
 
 Notes
 
-- Keep domain-specific types near the API module or under `src/features/<domain>/types.ts` if reused.
+- Keep domain-specific types under `src/features/<domain>/types/`.
 - Surface errors via `ApiResponseError` and extract `detail` with `getDetailFromApiResponseError` in UI.
-- Prefer `interface` for request/response shapes; use `type` for unions when needed.
+- Prefer `interface` for request/response shapes; use `type` for unions or Zod `z.infer` outputs.
+- Declare query keys inline in `queryOptions.ts` to keep things simple; introduce a dedicated `keys.ts` only if keys become complex and shared across multiple modules.
+
+Housekeeping
+
+- Remove empty interfaces. If a shape only extends another without adding fields, use a `type` alias (e.g., `export type CreateProductResponse = ProductResponse`).
 
 ## 8. Services (Domain Logic)
 
@@ -495,12 +473,11 @@ Using services inside API options
 ```
 // src/features/products/api/queryOptions.ts
 import { queryOptions } from '@tanstack/react-query'
-import { productKeys } from './keys'
 import { fetchAllProducts } from '../productService'
 
 export const listProductsOptions = (params?: { q?: string }) =>
   queryOptions({
-    queryKey: productKeys.list(params),
+    queryKey: ['products', 'list', params] as const,
     queryFn: () => fetchAllProducts(params),
   })
 ```
@@ -723,13 +700,12 @@ Using schemas at API boundaries
 import { queryOptions } from '@tanstack/react-query'
 import ky from '@/lib/ky'
 import { apiBaseUrl } from '@/constants/api'
-import { productKeys } from './keys'
 import { productSchema } from '../schemas'
 import type { Product } from '../types'
 
 export const productDetailOptions = (id: string) =>
   queryOptions({
-    queryKey: productKeys.detail(id),
+    queryKey: ['products', 'detail', id] as const,
     queryFn: async (): Promise<Product> => {
       const data = await ky.get(`${apiBaseUrl}/products/${id}`).json()
       return productSchema.parse(data)
