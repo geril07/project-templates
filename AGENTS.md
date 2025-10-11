@@ -165,26 +165,43 @@ export const login = async (body: LoginRequest): Promise<LoginResponse> =>
 ### 3.4 Shared libs
 
 ```
-// src/lib/ky.ts
-import Ky from 'ky'
+// src/lib/ky/apiClient.ts
+import ky from 'ky'
+import { apiBaseUrl } from '@/constants/api'
 
-const ky = Ky.create({
-  headers: { 'Content-Type': 'application/json' },
-  retry: { limit: 1 },
+export const apiClient = ky.create({
+  prefixUrl: apiBaseUrl,
+  retry: 0,
 })
 
-export default ky
+// src/lib/ky/index.ts
+export * from './apiClient'
 ```
 
 ```
-// src/lib/tanstackQuery.ts
-import { QueryClient } from '@tanstack/react-query'
+// src/lib/tanstackQuery/client.ts
+import { QueryCache, QueryClient } from '@tanstack/react-query'
 
 export const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error) => {
+      console.error(error)
+    },
+  }),
   defaultOptions: {
-    queries: { staleTime: 5 * 60 * 1000, retry: 1 },
+    queries: {
+      refetchOnWindowFocus: false,
+      staleTime: 3 * 60 * 1000,
+      retry: 0,
+    },
+    mutations: {
+      retry: 0,
+    },
   },
 })
+
+// src/lib/tanstackQuery/index.ts
+export * from './client'
 ```
 
 ### 3.5 Constants
