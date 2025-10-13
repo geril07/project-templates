@@ -16,6 +16,7 @@ export default defineConfig([
       reactHooks.configs.flat['recommended-latest'],
       reactRefresh.configs.vite,
       reactPlugin.configs.flat['recommended'],
+      reactPlugin.configs.flat['jsx-runtime'],
     ],
     settings: {
       react: {
@@ -27,7 +28,15 @@ export default defineConfig([
       globals: globals.browser,
     },
     rules: {
-      'react/react-in-jsx-scope': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+      '@typescript-eslint/consistent-type-imports': [
+        'warn',
+        { prefer: 'type-imports' },
+      ],
+      'react/jsx-curly-brace-presence': ['warn'],
     },
   },
 ])
