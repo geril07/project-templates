@@ -3,7 +3,9 @@ import { throwApiResponseErrFromKyErr } from '@/utils/errors/apiErrorResponse'
 
 import type { CreateProductInput, Product } from './types'
 
-export const fetchAllProducts = async (params?: { q?: string }): Promise<Product[]> =>
+export const fetchAllProducts = async (params?: {
+  q?: string
+}): Promise<Product[]> =>
   apiClient
     .get('products', { searchParams: params })
     .json<Product[]>()
@@ -15,7 +17,9 @@ export const fetchProductById = async (id: string): Promise<Product> =>
     .json<Product>()
     .catch(throwApiResponseErrFromKyErr)
 
-export const createProduct = async (input: CreateProductInput): Promise<Product> =>
+export const createProduct = async (
+  input: CreateProductInput,
+): Promise<Product> =>
   apiClient
     .post('products', { json: input })
     .json<Product>()

@@ -11,7 +11,14 @@ export default defineConfig(({ mode }) => {
     define: {
       global: 'globalThis',
     },
-    plugins: [tanstackRouter({ autoCodeSplitting: true }), viteReact(), svgr()],
+    plugins: [
+      tanstackRouter({
+        autoCodeSplitting: true,
+        generatedRouteTree: './src/lib/router/routeTree.gen.ts',
+      }),
+      viteReact(),
+      svgr(),
+    ],
     server: {
       host: true,
       port: 3000,

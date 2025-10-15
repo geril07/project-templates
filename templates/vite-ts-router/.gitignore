@@ -27,3 +27,6 @@ dist-ssr
 # don't store env files in the repo
 .env*
 !.env.example
+
+.vite
+.tanstack
