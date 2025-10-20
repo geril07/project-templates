@@ -37,6 +37,7 @@ export default defineConfig([
         { prefer: 'type-imports' },
       ],
       'react/jsx-curly-brace-presence': ['warn'],
+      'react/prop-types': 'off',
     },
   },
 ])
