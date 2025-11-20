@@ -451,9 +451,9 @@ Pages orchestrate multiple features:
 
 ```tsx
 // src/pages/DashboardPage.tsx
-import { ProductList } from '@/features/products'
-import { OrderList } from '@/features/orders'
 import { useAuth } from '@/features/auth'
+import { OrderList } from '@/features/orders'
+import { ProductList } from '@/features/products'
 import { Card } from '@/shared/components/ui'
 
 export const DashboardPage = () => {
@@ -461,8 +461,12 @@ export const DashboardPage = () => {
   return (
     <div>
       <h1>Welcome, {user.name}</h1>
-      <Card><ProductList limit={5} /></Card>
-      <Card><OrderList limit={5} /></Card>
+      <Card>
+        <ProductList limit={5} />
+      </Card>
+      <Card>
+        <OrderList limit={5} />
+      </Card>
     </div>
   )
 }
