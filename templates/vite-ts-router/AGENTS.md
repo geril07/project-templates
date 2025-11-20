@@ -103,21 +103,140 @@ src/features/<domain>/api/
 - Create via `createContextFactory` (in `src/shared/utils/contextFactory.ts`).
 - Feature‑scoped contexts live under the feature folder; global contexts under `src/shared/contexts/`.
 
-## 11. Pages vs Routes
+## 11. Pages Structure & Organization
 
-- **Routes** (`src/routes/`): TanStack Router wiring (loaders, params, config).
-- **Pages** (`src/pages/`): Presentational UI for a route, minimal domain logic.
-- Keep pages thin; delegate data fetching to feature hooks.
+### Pages vs Routes
+
+- **Routes** (`src/routes/`): TanStack Router wiring (loaders, params, validation, config).
+- **Pages** (`src/pages/`): Composition layer - orchestrates features, manages URL state, minimal domain logic.
+- Keep pages thin; delegate business logic to features.
+
+### Page Folder Structure (Always Use Folders)
+
+**All pages must use folder structure, never flat files:**
+
+```
+src/pages/
+├─ ProductsPage/
+│  ├─ ProductsPage.tsx        # Main page component
+│  ├─ index.ts                # Public export
+│  ├─ hooks/                  # Page-specific hooks
+│  │  └─ useProductFilters.ts # URL state management
+│  ├─ types/                  # Page-specific types (URL params, view models)
+│  │  └─ index.ts
+│  └─ components/             # Page-specific composition widgets (optional)
+│     └─ ProductFilters.tsx
+└─ HomePage/
+   ├─ HomePage.tsx            # Simple page - still uses folder
+   └─ index.ts
+```
+
+### When Pages Need Internal Structure
+
+**Pages should have internal structure when they:**
+
+1. **Manage URL state** (search params, filters, pagination)
+   - Create `hooks/usePageFilters.ts` for search param management
+   - Create `types/` for URL param schemas (use Zod)
+
+2. **Orchestrate multiple features**
+   - Create `hooks/usePageData.ts` to combine feature queries
+   - Keep orchestration logic separate from components
+
+3. **Have page-specific components**
+   - Create `components/` for page-specific composition widgets
+   - Components that combine multiple feature components
+
+4. **Transform feature data for presentation**
+   - Create `utils/` for page-specific transformations
+   - View models that don't belong in features
+
+### Example: URL State Management
+
+```typescript
+// pages/ProductsPage/types/index.ts
+import { z } from 'zod'
+
+export const productPageFiltersSchema = z.object({
+  q: z.string().optional(),
+  category: z.string().optional(),
+  sort: z.enum(['name', 'price']).optional(),
+})
+
+export type ProductPageFilters = z.infer<typeof productPageFiltersSchema>
+
+// pages/ProductsPage/hooks/useProductFilters.ts
+import { useNavigate, useSearch } from '@tanstack/react-router'
+import type { ProductPageFilters } from '../types'
+
+export const useProductFilters = () => {
+  const search = useSearch({ strict: false })
+  const navigate = useNavigate()
+  const filters = search as ProductPageFilters
+
+  const setFilters = (newFilters: Partial<ProductPageFilters>) => {
+    navigate({ search: { ...filters, ...newFilters } as any })
+  }
+
+  return { filters, setFilters }
+}
+
+// pages/ProductsPage/ProductsPage.tsx
+import { useQuery } from '@tanstack/react-query'
+import { listProductsOptions } from '@/features/products'
+import { useProductFilters } from './hooks/useProductFilters'
+
+export const ProductsPage = () => {
+  const { filters, setFilters } = useProductFilters()
+  const { data } = useQuery(listProductsOptions(filters))
+
+  return (
+    <div>
+      <input
+        value={filters.q ?? ''}
+        onChange={(e) => setFilters({ q: e.target.value || undefined })}
+      />
+      {/* render products */}
+    </div>
+  )
+}
+
+// routes/products.index.tsx
+import { createFileRoute } from '@tanstack/react-router'
+import { ProductsPage, type ProductPageFilters } from '@/pages/ProductsPage'
+
+export const Route = createFileRoute('/products/')({
+  component: ProductsPage,
+  validateSearch: (search: Record<string, unknown>): ProductPageFilters => ({
+    q: (search.q as string) || undefined,
+    category: (search.category as string) || undefined,
+    sort: (search.sort as 'name' | 'price') || undefined,
+  }),
+})
+```
+
+### What Belongs in Pages vs Features
+
+| Concern                   | Page                  | Feature          |
+| ------------------------- | --------------------- | ---------------- |
+| Business logic            | ❌                    | ✅               |
+| API calls                 | ❌                    | ✅               |
+| URL state management      | ✅                    | ❌               |
+| Search params parsing     | ✅                    | ❌               |
+| Multi-feature composition | ✅                    | ❌               |
+| Reusable components       | ❌                    | ✅               |
+| Page-specific widgets     | ✅                    | ❌               |
+| View transformations      | ✅ (if page-specific) | ✅ (if reusable) |
 
 ## 12. Feature Types & Schemas
 
 - Use Zod for runtime validation; keep schemas in `schemas/` folder.
 - Example: `src/features/products/schemas/productSchema.ts` with `index.ts` re-export.
 - Colocate TypeScript types under `types/`:
-  - `models.ts` – core domain interfaces.
-  - `api.ts` – request/response shapes (often `z.infer<>`).
+  - `models.ts` – core domain types (use `z.infer<>` from schemas to avoid duplication).
   - `index.ts` – re‑exports.
-- Prefer `interface` for manually authored shapes; use `type` for Zod‑inferred types.
+- Prefer using Zod as single source of truth for data shapes; use `type` for Zod‑inferred types.
+- Only use manual `interface` definitions for shapes that don't need runtime validation.
 
 ## 13. Components Structure
 
