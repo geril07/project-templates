@@ -1,7 +1,6 @@
 import { queryOptions } from '@tanstack/react-query'
 
-import { fetchAllProducts, fetchProductById } from '../productService'
-import { productSchema } from '../schemas'
+import { fetchAllProducts, fetchProductById } from '../services'
 import type { Product } from '../types'
 
 export const listProductsOptions = (params?: { q?: string }) =>

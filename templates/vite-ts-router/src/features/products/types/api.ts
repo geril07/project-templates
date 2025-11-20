@@ -1,10 +1,2 @@
-export interface ProductResponse {
-  id: string
-  name: string
-}
-
-export interface CreateProductRequest {
-  name: string
-}
-
-export type CreateProductResponse = ProductResponse
+// API-specific types go here if needed
+// For now, we use Zod-inferred types from models.ts to avoid duplication

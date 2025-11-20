@@ -1,7 +1,7 @@
-import { apiClient } from '@/lib/ky'
-import { throwApiResponseErrFromKyErr } from '@/utils/errors/apiErrorResponse'
+import { apiClient } from '@/shared/api'
+import { throwApiResponseErrFromKyErr } from '@/shared/utils/errors/apiErrorResponse'
 
-import type { CreateProductInput, Product } from './types'
+import type { CreateProductInput, Product } from '../types'
 
 export const fetchAllProducts = async (params?: {
   q?: string
