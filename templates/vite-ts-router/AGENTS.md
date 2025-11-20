@@ -242,20 +242,109 @@ export const Route = createFileRoute('/products/')({
 
 ### Global Components (`src/shared/components/`)
 
-**Layered hierarchy for scalability:**
-
 ```
 shared/components/
 ├── ui/                    # Atoms/primitives (shadcn-style)
-│   ├── button/
-│   │   ├── button.tsx
-│   │   └── index.ts
-│   ├── table/
-│   └── index.ts          # Re-export primitives
 └── composites/            # Molecules/organisms (TanStack wrappers, forms)
-    └── data-table/
-        ├── data-table.tsx
-        └── index.ts
+```
+
+- **ui/**: Unstyled/stateless primitives (Button, Input, Table).
+- **composites/**: Logic-heavy wrappers (DataTable using ui/table + TanStack Table).
+- Import: `@/shared/components/ui/button`, `@/shared/components/composites/data-table`.
+- **shadcn/ui integration**: Place primitives in `ui/`, customize as needed.
+- Structure flexible: flat files (`button.tsx`) or folders (`button/button.tsx`).
+
+### Feature Components (`src/features/<domain>/components/`)
+
+- Domain-specific composites (uses ui/composites + domain data).
+- **No cross-feature imports**.
+- Export selectively via `index.ts`.
+
+### Page Components (`src/pages/<PageName>/components/` - optional)
+
+- Page-specific composition widgets.
+- Use when widget doesn't belong in feature or shared.
+
+### Rules
+
+- **Public API**: Export via `index.ts` (barrel exports).
+- **Stateless primitives** in ui/ (no React Query, no business logic).
+- **Arrow functions**, `interface` props.
+- **clsx** or `cn()` for class composition.
+- **No cross-feature imports**.
+- **Testing**: `__tests__/` colocated.
+
+shared/components/
+├── ui/ # Atoms/primitives (shadcn-style)
+│ ├── [primitive]/ # e.g., button/, table/
+│ │ ├── [primitive].tsx
+│ │ └── index.ts
+│ └── index.ts # Re-export primitives
+└── composites/ # Molecules/organisms (TanStack wrappers, forms)
+└── [composite]/ # e.g., data-table/
+├── [composite].tsx
+└── index.ts
+
+```
+
+- **ui/**: Unstyled/stateless primitives (Button, Input, Table). One folder per primitive.
+- **composites/**: Logic-heavy wrappers (DataTable using ui/table + TanStack Table).
+- Import: `@/shared/components/ui/button`, `@/shared/components/composites/data-table`.
+- **shadcn/ui integration**: Copy primitives to `ui/[primitive]/`, customize variants.
+
+### Feature Components (`src/features/<domain>/components/`)
+
+```
+
+features/products/components/
+├── [domain-component].tsx # e.g., product-card.tsx (uses ui/button + domain data)
+├── [list-component].tsx # Composes ui/composites for domain
+└── index.ts # Public API (selective exports)
+
+````
+
+- Feature-owned composites (domain logic).
+- **No cross-feature imports**.
+- Export selectively via `index.ts`.
+
+### Page Components (`src/pages/<PageName>/components/` - optional)
+
+- Page-specific composition widgets (e.g., `ProductsPage/components/product-filters.tsx`).
+- Use when widget doesn't belong in feature or shared.
+
+### Rules
+
+- **One component per folder** (with `index.ts`).
+- **Stateless primitives** in ui/ (no React Query, no business logic).
+- **Arrow functions**, `interface` props.
+- **clsx** or `cn()` for class composition.
+- **Public API**: Export via `index.ts` (barrel exports).
+- **Testing**: `__tests__/` colocated.
+
+**Example Usage:**
+
+```typescript
+// Page composes
+import { ProductCard } from '@/features/products'
+import { DataTable } from '@/shared/components/composites/data-table'
+import { Button } from '@/shared/components/ui/button'
+
+// Feature-specific
+// features/products/components/product-table.tsx → uses DataTable + product queryOptions
+````
+
+shared/components/
+├── ui/ # Atoms/primitives (shadcn-style)
+│ ├── button/
+│ │ ├── button.tsx
+│ │ └── index.ts
+│ ├── table/
+│ └── index.ts # Re-export primitives
+└── composites/ # Molecules/organisms (TanStack wrappers, forms)
+└── data-table/
+├── data-table.tsx
+└── index.ts
+
 ```
 
 - **ui/**: Unstyled/stateless primitives (Button, Input, Table). One folder per primitive.
@@ -266,11 +355,13 @@ shared/components/
 ### Feature Components (`src/features/<domain>/components/`)
 
 ```
+
 features/products/components/
-├── product-card.tsx       # Domain-specific (uses ui/button + product data)
-├── product-list.tsx       # Composes ui/composites for products
-└── index.ts               # Public API (selective exports)
-```
+├── product-card.tsx # Domain-specific (uses ui/button + product data)
+├── product-list.tsx # Composes ui/composites for products
+└── index.ts # Public API (selective exports)
+
+````
 
 - Feature-owned composites (domain logic).
 - **No cross-feature imports**.
@@ -300,7 +391,7 @@ import { ProductCard } from '@/features/products'
 
 // Feature-specific
 features/products/components/product-table.tsx → uses DataTable + product queryOptions
-```
+````
 
 ## 14. Stores
 
@@ -358,7 +449,7 @@ export { productSchema } from './schemas'
 
 Pages orchestrate multiple features:
 
-```typescript
+```tsx
 // src/pages/DashboardPage.tsx
 import { ProductList } from '@/features/products'
 import { OrderList } from '@/features/orders'
