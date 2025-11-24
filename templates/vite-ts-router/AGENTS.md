@@ -2,14 +2,12 @@
 
 ## 1. Commands
 
-| Action      | Command                 |
-| ----------- | ----------------------- |
-| Build       | `npm run build`         |
-| Lint        | `npm run lint`          |
-| Type Check  | `npm run typecheck`     |
-| Format      | `npm run format`        |
-| Test        | `vitest`                |
-| Single Test | `vitest <path/to/test>` |
+| Action     | Command             |
+| ---------- | ------------------- |
+| Build      | `npm run build`     |
+| Lint       | `npm run lint`      |
+| Type Check | `npm run typecheck` |
+| Format     | `npm run format`    |
 
 ## 2. Code Style & Conventions
 
@@ -20,7 +18,6 @@
 - **Interfaces vs Types**: Prefer `interface` for object shapes, `type` for unions, primitives, tuples.
 - **Functions**: Arrow functions for components/hooks/utilities; `function` only when hoisting or `this` needed.
 - **Error handling**: Typed errors, narrow catches.
-- **Class names**: Use `clsx` when composing class names.
 
 ## 3. Project Structure (Fractal Architecture)
 
@@ -31,7 +28,7 @@ src/
 │     ├─ api/         # React Query integration
 │     ├─ components/  # Feature-specific UI
 │     ├─ hooks/       # Feature-specific hooks
-│     ├─ schemas/     # Zod validation schemas
+│     ├─ schemas/     # Validation schemas
 │     ├─ services/    # Business logic & API calls
 │     ├─ types/       # TypeScript types
 │     ├─ utils/       # Feature-specific utilities
@@ -61,29 +58,23 @@ src/
 - Services and schemas organized in folders, not flat files
 - Infrastructure code (api, query, router) at root level for clarity
 
-## 4. Testing
-
-- Run all tests: `vitest`
-- Run a single test: `vitest <path>`
-
-## 5. Agent Workflow
+## 4. Agent Workflow
 
 1. Make focused changes per feature.
-2. Validate locally: `npm run typecheck && npm run lint && npm run format && vitest`.
+2. Validate locally: `npm run typecheck && npm run lint && npm run format`.
 3. Keep imports ordered in three groups.
 4. Use strong typing for props, API I/O, hook returns.
-5. Minimal user‑facing error messages.
 
-## 6. Scope & Precedence
+## 5. Scope & Precedence
 
 - Rules apply repo‑wide unless a more specific `AGENTS.md` exists in a subdirectory; that file overrides the root rules. Direct developer/user instructions supersede any guideline.
 
-## 7. Env Vars
+## 6. Env Vars
 
 - Vite only exposes variables prefixed with `VITE_`.
 - Define them in `.env`/`.env.local` and centralize usage in `src/constants/api.ts` as `apiBaseUrl`.
 
-## 8. API Structure (per feature)
+## 7. API Structure (per feature)
 
 ```
 src/features/<domain>/api/
@@ -94,7 +85,7 @@ src/features/<domain>/api/
 - Keep UI/hooks separate from API.
 - Export `queryOptions`/`mutationOptions` for thin hooks and easy testing.
 
-## 9. Services (domain logic)
+## 8. Services (domain logic)
 
 - Add a service layer when logic doesn't belong in React hooks or API client.
 - Prefer plain functions; avoid React imports.
@@ -102,13 +93,13 @@ src/features/<domain>/api/
 - Example: `src/features/products/services/productService.ts`
 - Export interfaces for request/response shapes; keep return types explicit.
 
-## 10. Contexts
+## 9. Contexts
 
 - Use React Context sparingly (auth, theming, shared feature state).
 - Create via `createContextFactory` (in `src/utils/contextFactory.ts`).
-- Feature‑scoped contexts live under the feature folder; global contexts under `src/contexts/` (if needed).
+- Feature‑scoped contexts live under the feature folder.
 
-## 11. Pages Structure & Organization
+## 10. Pages Structure & Organization
 
 ### Pages vs Routes
 
@@ -142,7 +133,7 @@ src/pages/
 
 1. **Manage URL state** (search params, filters, pagination)
    - Create `hooks/usePageFilters.ts` for search param management
-   - Create `types/` for URL param schemas (use Zod)
+   - Create `types/` for URL param schemas
 
 2. **Orchestrate multiple features**
    - Create `hooks/usePageData.ts` to combine feature queries
@@ -155,70 +146,6 @@ src/pages/
 4. **Transform feature data for presentation**
    - Create `utils/` for page-specific transformations
    - View models that don't belong in features
-
-### Example: URL State Management
-
-```typescript
-// pages/ProductsPage/types/index.ts
-import { z } from 'zod'
-
-export const productPageFiltersSchema = z.object({
-  q: z.string().optional(),
-  category: z.string().optional(),
-  sort: z.enum(['name', 'price']).optional(),
-})
-
-export type ProductPageFilters = z.infer<typeof productPageFiltersSchema>
-
-// pages/ProductsPage/hooks/useProductFilters.ts
-import { useNavigate, useSearch } from '@tanstack/react-router'
-import type { ProductPageFilters } from '../types'
-
-export const useProductFilters = () => {
-  const search = useSearch({ strict: false })
-  const navigate = useNavigate()
-  const filters = search as ProductPageFilters
-
-  const setFilters = (newFilters: Partial<ProductPageFilters>) => {
-    navigate({ search: { ...filters, ...newFilters } as any })
-  }
-
-  return { filters, setFilters }
-}
-
-// pages/ProductsPage/ProductsPage.tsx
-import { useQuery } from '@tanstack/react-query'
-import { listProductsOptions } from '@/features/products'
-import { useProductFilters } from './hooks/useProductFilters'
-
-export const ProductsPage = () => {
-  const { filters, setFilters } = useProductFilters()
-  const { data } = useQuery(listProductsOptions(filters))
-
-  return (
-    <div>
-      <input
-        value={filters.q ?? ''}
-        onChange={(e) => setFilters({ q: e.target.value || undefined })}
-      />
-      {/* render products */}
-    </div>
-  )
-}
-
-// routes/products.index.tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { ProductsPage, type ProductPageFilters } from '@/pages/ProductsPage'
-
-export const Route = createFileRoute('/products/')({
-  component: ProductsPage,
-  validateSearch: (search: Record<string, unknown>): ProductPageFilters => ({
-    q: (search.q as string) || undefined,
-    category: (search.category as string) || undefined,
-    sort: (search.sort as 'name' | 'price') || undefined,
-  }),
-})
-```
 
 ### What Belongs in Pages vs Features
 
@@ -233,180 +160,55 @@ export const Route = createFileRoute('/products/')({
 | Page-specific widgets     | ✅                    | ❌               |
 | View transformations      | ✅ (if page-specific) | ✅ (if reusable) |
 
-## 12. Feature Types & Schemas
+## 11. Feature Types & Schemas
 
-- Use Zod for runtime validation; keep schemas in `schemas/` folder.
+- Colocate schemas in `schemas/` folder.
 - Example: `src/features/products/schemas/productSchema.ts` with `index.ts` re-export.
 - Colocate TypeScript types under `types/`:
-  - `models.ts` – core domain types (use `z.infer<>` from schemas to avoid duplication).
-  - `index.ts` – re‑exports.
-- Prefer using Zod as single source of truth for data shapes; use `type` for Zod‑inferred types.
-- Only use manual `interface` definitions for shapes that don't need runtime validation.
+  - `models.ts` – core domain types
+  - `api.ts` – API request/response types
+  - `index.ts` – re‑exports
 
-## 13. Components Structure
+## 12. Components Structure
 
 ### Global Components (`src/components/`)
 
 ```
 components/
-├── ui/                    # Atoms/primitives (shadcn-style)
-└── composites/            # Molecules/organisms (TanStack wrappers, forms)
+├── ui/                    # Primitives (Button, Input, Card)
+└── composites/            # Complex components (DataTable, forms)
 ```
 
-- **ui/**: Unstyled/stateless primitives (Button, Input, Table).
-- **composites/**: Logic-heavy wrappers (DataTable using ui/table + TanStack Table).
-- Import: `@/components/ui/button`, `@/components/composites/data-table`.
-- **shadcn/ui integration**: Place primitives in `ui/`, customize as needed.
-- Structure flexible: flat files (`button.tsx`) or folders (`button/button.tsx`).
+- **ui/**: Stateless primitives
+- **composites/**: Logic-heavy wrappers (DataTable using TanStack Table)
+- Structure flexible: flat files (`button.tsx`) or folders (`button/button.tsx` + `index.ts`)
 
 ### Feature Components (`src/features/<domain>/components/`)
 
-- Domain-specific composites (uses ui/composites + domain data).
-- **No cross-feature imports**.
-- Export selectively via `index.ts`.
+- Domain-specific composites (uses ui/composites + domain data)
+- **No cross-feature imports**
+- Export selectively via `index.ts`
 
 ### Page Components (`src/pages/<PageName>/components/` - optional)
 
-- Page-specific composition widgets.
-- Use when widget doesn't belong in feature or shared.
+- Page-specific composition widgets
+- Use when widget doesn't belong in feature or shared
 
 ### Rules
 
-- **Public API**: Export via `index.ts` (barrel exports).
-- **Stateless primitives** in ui/ (no React Query, no business logic).
-- **Arrow functions**, `interface` props.
-- **clsx** or `cn()` for class composition.
-- **No cross-feature imports**.
-- **Testing**: `__tests__/` colocated.
+- **Public API**: Export via `index.ts` (barrel exports)
+- **Stateless primitives** in ui/ (no React Query, no business logic)
+- **Arrow functions**, `interface` props
+- **No cross-feature imports**
 
-components/
-├── ui/ # Atoms/primitives (shadcn-style)
-│ ├── [primitive]/ # e.g., button/, table/
-│ │ ├── [primitive].tsx
-│ │ └── index.ts
-│ └── index.ts # Re-export primitives
-└── composites/ # Molecules/organisms (TanStack wrappers, forms)
-└── [composite]/ # e.g., data-table/
-├── [composite].tsx
-└── index.ts
-
-```
-
-- **ui/**: Unstyled/stateless primitives (Button, Input, Table). One folder per primitive.
-- **composites/**: Logic-heavy wrappers (DataTable using ui/table + TanStack Table).
-- Import: `@/components/ui/button`, `@/components/composites/data-table`.
-- **shadcn/ui integration**: Copy primitives to `ui/[primitive]/`, customize variants.
-
-### Feature Components (`src/features/<domain>/components/`)
-
-```
-
-features/products/components/
-├── [domain-component].tsx # e.g., product-card.tsx (uses ui/button + domain data)
-├── [list-component].tsx # Composes ui/composites for domain
-└── index.ts # Public API (selective exports)
-
-````
-
-- Feature-owned composites (domain logic).
-- **No cross-feature imports**.
-- Export selectively via `index.ts`.
-
-### Page Components (`src/pages/<PageName>/components/` - optional)
-
-- Page-specific composition widgets (e.g., `ProductsPage/components/product-filters.tsx`).
-- Use when widget doesn't belong in feature or shared.
-
-### Rules
-
-- **One component per folder** (with `index.ts`).
-- **Stateless primitives** in ui/ (no React Query, no business logic).
-- **Arrow functions**, `interface` props.
-- **clsx** or `cn()` for class composition.
-- **Public API**: Export via `index.ts` (barrel exports).
-- **Testing**: `__tests__/` colocated.
-
-**Example Usage:**
-
-```typescript
-// Page composes
-import { ProductCard } from '@/features/products'
-import { DataTable } from '@/components/composites/data-table'
-import { Button } from '@/components/ui/button'
-
-// Feature-specific
-// features/products/components/product-table.tsx → uses DataTable + product queryOptions
-````
-
-components/
-├── ui/ # Atoms/primitives (shadcn-style)
-│ ├── button/
-│ │ ├── button.tsx
-│ │ └── index.ts
-│ ├── table/
-│ └── index.ts # Re-export primitives
-└── composites/ # Molecules/organisms (TanStack wrappers, forms)
-└── data-table/
-├── data-table.tsx
-└── index.ts
-
-```
-
-- **ui/**: Unstyled/stateless primitives (Button, Input, Table). One folder per primitive.
-- **composites/**: Logic-heavy wrappers (DataTable using ui/table + TanStack Table).
-- Import: `@/components/ui/button`, `@/components/composites/data-table`.
-- **shadcn/ui integration**: Copy to `ui/button/`, customize variants.
-
-### Feature Components (`src/features/<domain>/components/`)
-
-```
-
-features/products/components/
-├── product-card.tsx # Domain-specific (uses ui/button + product data)
-├── product-list.tsx # Composes ui/composites for products
-└── index.ts # Public API (selective exports)
-
-````
-
-- Feature-owned composites (domain logic).
-- **No cross-feature imports**.
-- Export selectively via `index.ts`.
-
-### Page Components (`src/pages/<PageName>/components/` - optional)
-
-- Page-specific composition widgets (e.g., `ProductsPage/components/product-filters.tsx`).
-- Use when widget doesn't belong in feature or shared.
-
-### Rules
-
-- **One component per folder** (with `index.ts`).
-- **Stateless primitives** in ui/ (no React Query, no business logic).
-- **Arrow functions**, `interface` props.
-- **clsx** for class composition.
-- **Public API**: Export via `index.ts` (barrel exports).
-- **Testing**: `__tests__/` colocated.
-
-**Example Usage:**
-
-```typescript
-// Page composes
-import { Button } from '@/components/ui/button'
-import { DataTable } from '@/components/composites/data-table'
-import { ProductCard } from '@/features/products'
-
-// Feature-specific
-features/products/components/product-table.tsx → uses DataTable + product queryOptions
-````
-
-## 14. Stores
+## 13. Stores
 
 - Prefer React Query for server state.
 - Use a client store (e.g., Zustand) only for UI state that isn't derived from queries/props.
 - Domain stores: `src/features/<domain>/store/<name>Store.ts`.
-- Global stores (rare): `src/shared/state/`.
 - Keep stores minimal, serializable, and typed.
 
-## 15. Import Rules & Boundaries
+## 14. Import Rules & Boundaries
 
 **Allowed Import Patterns:**
 
@@ -421,7 +223,7 @@ features/products/components/product-table.tsx → uses DataTable + product quer
 - ❌ Shared → Feature: Shared code cannot depend on features
 - ❌ Bypassing Public API: `import { ... } from '@/features/products/services'` (must use `@/features/products`)
 
-## 16. Feature Public API
+## 15. Feature Public API
 
 Every feature must export a public API via `index.ts`:
 
@@ -450,12 +252,12 @@ export { productSchema } from './schemas'
 - Internal utilities stay internal
 - Components are exported selectively
 
-## 17. Pages as Composition Layer
+## 16. Pages as Composition Layer
 
 Pages orchestrate multiple features:
 
 ```tsx
-// src/pages/DashboardPage.tsx
+// src/pages/DashboardPage/DashboardPage.tsx
 import { Card } from '@/components/ui'
 import { useAuth } from '@/features/auth'
 import { OrderList } from '@/features/orders'
@@ -481,7 +283,7 @@ export const DashboardPage = () => {
 - Pages handle feature composition and layout
 - Keep business logic in features, not pages
 
-## 18. Assets & Styles
+## 17. Assets & Styles
 
 **Assets Organization:**
 
@@ -489,23 +291,4 @@ export const DashboardPage = () => {
 - Shared assets: `src/assets/` (logos, shared icons, fonts)
   - `src/assets/images/`
   - `src/assets/icons/`
-  - `src/assets/fonts/`
 - Static public assets: `public/` (favicon, robots.txt, files referenced in HTML)
-
-**Styles Organization:**
-
-- Global styles: `src/styles/index.css` (imported in `main.tsx`)
-- Component styles: Colocate with components using CSS Modules (`.module.css`)
-- Feature styles: `src/features/<domain>/styles/` (if needed for feature-specific themes)
-
-**Import Examples:**
-
-```typescript
-// Shared assets
-import logo from '@/assets/images/logo.svg'
-
-// Component styles
-import styles from './Button.module.css'
-// Feature assets (within feature only)
-import icon from './assets/icons/product.svg'
-```
