@@ -1,6 +1,6 @@
 import { apiClient } from '@/api'
 
-import type { CreateProductInput, Product } from '../types'
+import type { CreateProductInput, Product } from './models'
 
 export const fetchAllProducts = async (params?: {
   q?: string

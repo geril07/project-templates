@@ -1,6 +1,6 @@
 import type { z } from 'zod'
 
-import type { createProductInputSchema, productSchema } from '../schemas'
+import type { createProductInputSchema, productSchema } from './schemas'
 
 export interface ProductFilters {
   q?: string
