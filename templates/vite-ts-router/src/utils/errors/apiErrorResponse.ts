@@ -1,7 +1,7 @@
 import { isPlainObject } from 'es-toolkit'
 import { HTTPError } from 'ky'
 
-import type { ApiErrorResponse } from '@/shared/types/api'
+import type { ApiErrorResponse } from '@/types/api'
 
 export class ApiResponseError extends Error {
   err: HTTPError

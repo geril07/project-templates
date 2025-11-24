@@ -1,8 +1,8 @@
 import ky from 'ky'
 
-import { apiBaseUrl } from '@/shared/config/api'
+import { API_BASE_URL } from '@/constants/api'
 
 export const apiClient = ky.create({
-  prefixUrl: apiBaseUrl,
+  prefixUrl: API_BASE_URL,
   retry: 0,
 })

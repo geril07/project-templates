@@ -37,14 +37,18 @@ src/
 │     ├─ utils/       # Feature-specific utilities
 │     └─ index.ts     # ⭐ PUBLIC API - only entry point
 ├─ pages/             # Composition layer - orchestrates features
-├─ shared/            # Infrastructure & truly shared code
-│  ├─ api/            # HTTP client (ky)
-│  ├─ query/          # TanStack Query setup
-│  ├─ router/         # TanStack Router setup
-│  ├─ config/         # Environment & constants
-│  ├─ types/          # Global TypeScript types
-│  └─ utils/          # Generic utilities
+├─ api/               # HTTP client setup (ky)
+├─ query/             # TanStack Query setup
+├─ router/            # TanStack Router setup
 ├─ routes/            # TanStack Router definitions (thin)
+├─ assets/            # Shared assets (icons, images)
+├─ components/        # Shared UI components
+│  ├─ ui/             # Primitives (Button, Input)
+│  └─ composites/     # Complex components (DataTable)
+├─ constants/         # Environment & app constants
+├─ styles/            # Global styles
+├─ types/             # Global TypeScript types
+├─ utils/             # Generic utilities
 └─ main.tsx           # App bootstrap
 ```
 
@@ -55,6 +59,7 @@ src/
 - Pages compose multiple features together
 - No cross-feature imports (feature → feature ❌)
 - Services and schemas organized in folders, not flat files
+- Infrastructure code (api, query, router) at root level for clarity
 
 ## 4. Testing
 
@@ -100,8 +105,8 @@ src/features/<domain>/api/
 ## 10. Contexts
 
 - Use React Context sparingly (auth, theming, shared feature state).
-- Create via `createContextFactory` (in `src/shared/utils/contextFactory.ts`).
-- Feature‑scoped contexts live under the feature folder; global contexts under `src/shared/contexts/`.
+- Create via `createContextFactory` (in `src/utils/contextFactory.ts`).
+- Feature‑scoped contexts live under the feature folder; global contexts under `src/contexts/` (if needed).
 
 ## 11. Pages Structure & Organization
 
@@ -240,17 +245,17 @@ export const Route = createFileRoute('/products/')({
 
 ## 13. Components Structure
 
-### Global Components (`src/shared/components/`)
+### Global Components (`src/components/`)
 
 ```
-shared/components/
+components/
 ├── ui/                    # Atoms/primitives (shadcn-style)
 └── composites/            # Molecules/organisms (TanStack wrappers, forms)
 ```
 
 - **ui/**: Unstyled/stateless primitives (Button, Input, Table).
 - **composites/**: Logic-heavy wrappers (DataTable using ui/table + TanStack Table).
-- Import: `@/shared/components/ui/button`, `@/shared/components/composites/data-table`.
+- Import: `@/components/ui/button`, `@/components/composites/data-table`.
 - **shadcn/ui integration**: Place primitives in `ui/`, customize as needed.
 - Structure flexible: flat files (`button.tsx`) or folders (`button/button.tsx`).
 
@@ -274,7 +279,7 @@ shared/components/
 - **No cross-feature imports**.
 - **Testing**: `__tests__/` colocated.
 
-shared/components/
+components/
 ├── ui/ # Atoms/primitives (shadcn-style)
 │ ├── [primitive]/ # e.g., button/, table/
 │ │ ├── [primitive].tsx
@@ -289,7 +294,7 @@ shared/components/
 
 - **ui/**: Unstyled/stateless primitives (Button, Input, Table). One folder per primitive.
 - **composites/**: Logic-heavy wrappers (DataTable using ui/table + TanStack Table).
-- Import: `@/shared/components/ui/button`, `@/shared/components/composites/data-table`.
+- Import: `@/components/ui/button`, `@/components/composites/data-table`.
 - **shadcn/ui integration**: Copy primitives to `ui/[primitive]/`, customize variants.
 
 ### Feature Components (`src/features/<domain>/components/`)
@@ -326,14 +331,14 @@ features/products/components/
 ```typescript
 // Page composes
 import { ProductCard } from '@/features/products'
-import { DataTable } from '@/shared/components/composites/data-table'
-import { Button } from '@/shared/components/ui/button'
+import { DataTable } from '@/components/composites/data-table'
+import { Button } from '@/components/ui/button'
 
 // Feature-specific
 // features/products/components/product-table.tsx → uses DataTable + product queryOptions
 ````
 
-shared/components/
+components/
 ├── ui/ # Atoms/primitives (shadcn-style)
 │ ├── button/
 │ │ ├── button.tsx
@@ -349,7 +354,7 @@ shared/components/
 
 - **ui/**: Unstyled/stateless primitives (Button, Input, Table). One folder per primitive.
 - **composites/**: Logic-heavy wrappers (DataTable using ui/table + TanStack Table).
-- Import: `@/shared/components/ui/button`, `@/shared/components/composites/data-table`.
+- Import: `@/components/ui/button`, `@/components/composites/data-table`.
 - **shadcn/ui integration**: Copy to `ui/button/`, customize variants.
 
 ### Feature Components (`src/features/<domain>/components/`)
@@ -385,8 +390,8 @@ features/products/components/
 
 ```typescript
 // Page composes
-import { Button } from '@/shared/components/ui/button'
-import { DataTable } from '@/shared/components/composites/data-table'
+import { Button } from '@/components/ui/button'
+import { DataTable } from '@/components/composites/data-table'
 import { ProductCard } from '@/features/products'
 
 // Feature-specific
@@ -405,9 +410,9 @@ features/products/components/product-table.tsx → uses DataTable + product quer
 
 **Allowed Import Patterns:**
 
-- ✅ Feature → Shared: `import { apiClient } from '@/shared/api'`
+- ✅ Feature → Shared: `import { apiClient } from '@/api'`
 - ✅ Page → Feature: `import { ProductList } from '@/features/products'`
-- ✅ Page → Shared: `import { Button } from '@/shared/components/ui'`
+- ✅ Page → Shared: `import { Button } from '@/components/ui'`
 - ✅ Route → Page: `import { ProductsPage } from '@/pages/ProductsPage'`
 
 **Forbidden Import Patterns:**
@@ -451,10 +456,10 @@ Pages orchestrate multiple features:
 
 ```tsx
 // src/pages/DashboardPage.tsx
+import { Card } from '@/components/ui'
 import { useAuth } from '@/features/auth'
 import { OrderList } from '@/features/orders'
 import { ProductList } from '@/features/products'
-import { Card } from '@/shared/components/ui'
 
 export const DashboardPage = () => {
   const { user } = useAuth()
@@ -481,15 +486,15 @@ export const DashboardPage = () => {
 **Assets Organization:**
 
 - Feature-specific assets: `src/features/<domain>/assets/` (images/icons used only in that feature)
-- Shared assets: `src/shared/assets/` (logos, shared icons, fonts)
-  - `src/shared/assets/images/`
-  - `src/shared/assets/icons/`
-  - `src/shared/assets/fonts/`
+- Shared assets: `src/assets/` (logos, shared icons, fonts)
+  - `src/assets/images/`
+  - `src/assets/icons/`
+  - `src/assets/fonts/`
 - Static public assets: `public/` (favicon, robots.txt, files referenced in HTML)
 
 **Styles Organization:**
 
-- Global styles: `src/shared/styles/index.css` (imported in `main.tsx`)
+- Global styles: `src/styles/index.css` (imported in `main.tsx`)
 - Component styles: Colocate with components using CSS Modules (`.module.css`)
 - Feature styles: `src/features/<domain>/styles/` (if needed for feature-specific themes)
 
@@ -497,7 +502,7 @@ export const DashboardPage = () => {
 
 ```typescript
 // Shared assets
-import logo from '@/shared/assets/images/logo.svg'
+import logo from '@/assets/images/logo.svg'
 
 // Component styles
 import styles from './Button.module.css'

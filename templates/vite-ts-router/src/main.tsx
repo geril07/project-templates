@@ -3,9 +3,9 @@ import { RouterProvider } from '@tanstack/react-router'
 import { StrictMode } from 'react'
 import ReactDOM from 'react-dom/client'
 
-import { queryClient } from './shared/query'
-import { router } from './shared/router'
-import './shared/styles/index.css'
+import { queryClient } from './query'
+import { router } from './router'
+import './styles/main.css'
 
 // Render the app
 const rootElement = document.getElementById('root')!

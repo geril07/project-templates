@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       tanstackRouter({
         autoCodeSplitting: true,
-        generatedRouteTree: './src/shared/router/routeTree.gen.ts',
+        generatedRouteTree: './src/router/routeTree.gen.ts',
       }),
       viteReact(),
       svgr(),

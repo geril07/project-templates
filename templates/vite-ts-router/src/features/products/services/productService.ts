@@ -1,5 +1,5 @@
-import { apiClient } from '@/shared/api'
-import { throwApiResponseErrFromKyErr } from '@/shared/utils/errors/apiErrorResponse'
+import { apiClient } from '@/api'
+import { throwApiResponseErrFromKyErr } from '@/utils/errors/apiErrorResponse'
 
 import type { CreateProductInput, Product } from '../types'
 
