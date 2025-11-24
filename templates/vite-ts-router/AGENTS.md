@@ -55,7 +55,7 @@ src/
 - Features export public API via `index.ts` - import only from there
 - Pages compose multiple features together
 - No cross-feature imports (feature → feature ❌)
-- Services and schemas organized in folders, not flat files
+- **Flat-first approach**: Start with singular flat files (`service.ts`, `types.ts`), expand to plural folders (`services/`, `types/`) when complexity requires it
 - Infrastructure code (api, query, router) at root level for clarity
 
 ## 4. Agent Workflow
@@ -76,10 +76,21 @@ src/
 
 ## 7. API Structure (per feature)
 
+**Flat start:**
+
 ```
 src/features/<domain>/api/
 ├─ queryOptions.ts   # factories for `useQuery` options
-└─ mutations.ts     # `useMutation` hooks (uses `useQueryClient`)
+└─ mutations.ts      # `useMutation` hooks (uses `useQueryClient`)
+```
+
+**When grows, expand to folders grouped by feature area:**
+
+```
+src/features/<domain>/api/
+├─ queryOptions/     # e.g., products.ts, categories.ts
+├─ mutations/        # e.g., products.ts, categories.ts
+└─ index.ts
 ```
 
 - Keep UI/hooks separate from API.
@@ -89,8 +100,8 @@ src/features/<domain>/api/
 
 - Add a service layer when logic doesn't belong in React hooks or API client.
 - Prefer plain functions; avoid React imports.
-- Place services in `src/features/<domain>/services/` folder with `index.ts` re-export.
-- Example: `src/features/products/services/productService.ts`
+- Start with `service.ts` (singular flat file), expand to `services/` (plural folder) when needed.
+- When using folder: group by feature area (e.g., `services/auth.ts`, `services/oauth.ts`).
 - Export interfaces for request/response shapes; keep return types explicit.
 
 ## 9. Contexts
@@ -162,12 +173,9 @@ src/pages/
 
 ## 11. Feature Types & Schemas
 
-- Colocate schemas in `schemas/` folder.
-- Example: `src/features/products/schemas/productSchema.ts` with `index.ts` re-export.
-- Colocate TypeScript types under `types/`:
-  - `models.ts` – core domain types
-  - `api.ts` – API request/response types
-  - `index.ts` – re‑exports
+- Start with `schemas.ts` (singular flat file), expand to `schemas/` (plural folder) when needed.
+- Start with `types.ts` (singular flat file), expand to `types/` (plural folder) when needed.
+- When using folders, organize by concern (e.g., `types/models.ts`, `types/api.ts`).
 
 ## 12. Components Structure
 
@@ -187,7 +195,7 @@ components/
 
 - Domain-specific composites (uses ui/composites + domain data)
 - **No cross-feature imports**
-- Export selectively via `index.ts`
+- Export selectively
 
 ### Page Components (`src/pages/<PageName>/components/` - optional)
 
@@ -196,7 +204,6 @@ components/
 
 ### Rules
 
-- **Public API**: Export via `index.ts` (barrel exports)
 - **Stateless primitives** in ui/ (no React Query, no business logic)
 - **Arrow functions**, `interface` props
 - **No cross-feature imports**
