@@ -55,7 +55,6 @@ src/
 - Features export public API via `index.ts` - import only from there
 - Pages compose multiple features together
 - No cross-feature imports (feature → feature ❌)
-- **Flat-first approach**: Start with singular flat files (`service.ts`, `types.ts`), expand to plural folders (`services/`, `types/`) when complexity requires it
 - Infrastructure code (api, query, router) at root level for clarity
 
 ## 4. Agent Workflow
@@ -72,36 +71,19 @@ src/
 ## 6. Env Vars
 
 - Vite only exposes variables prefixed with `VITE_`.
-- Define them in `.env`/`.env.local` and centralize usage in `src/constants/api.ts` as `apiBaseUrl`.
+- Define them in `.env`/`.env.local` and centralize usage in `src/constants/api.ts` as `API_BASE_URL`.
 
-## 7. API Structure (per feature)
+## 7. API Structure
 
-**Flat start:**
-
-```
-src/features/<domain>/api/
-├─ queryOptions.ts   # factories for `useQuery` options
-└─ mutations.ts      # `useMutation` hooks (uses `useQueryClient`)
-```
-
-**When grows, expand to folders grouped by feature area:**
-
-```
-src/features/<domain>/api/
-├─ queryOptions/     # e.g., products.ts, categories.ts
-├─ mutations/        # e.g., products.ts, categories.ts
-└─ index.ts
-```
-
-- Keep UI/hooks separate from API.
-- Export `queryOptions`/`mutationOptions` for thin hooks and easy testing.
+- `api/queryOptions.ts` and `api/mutations.ts`
+- Expand to `api/queryOptions/` and `api/mutations/` folders grouped by feature area (e.g., products.ts, categories.ts)
 
 ## 8. Services (domain logic)
 
 - Add a service layer when logic doesn't belong in React hooks or API client.
 - Prefer plain functions; avoid React imports.
-- Start with `service.ts` (singular flat file), expand to `services/` (plural folder) when needed.
-- When using folder: group by feature area (e.g., `services/auth.ts`, `services/oauth.ts`).
+- Place services in `src/features/<domain>/services/` folder.
+- Group by feature area (e.g., `services/auth.ts`, `services/oauth.ts`).
 - Export interfaces for request/response shapes; keep return types explicit.
 
 ## 9. Contexts
@@ -110,192 +92,40 @@ src/features/<domain>/api/
 - Create via `createContextFactory` (in `src/utils/contextFactory.ts`).
 - Feature‑scoped contexts live under the feature folder.
 
-## 10. Pages Structure & Organization
+## 10. Pages
 
-### Pages vs Routes
-
-- **Routes** (`src/routes/`): TanStack Router wiring (loaders, params, validation, config).
-- **Pages** (`src/pages/`): Composition layer - orchestrates features, manages URL state, minimal domain logic.
+- **Pages** (`src/pages/`): Composition layer, orchestrates features, manages URL state.
+- **Routes** (`src/routes/`): TanStack Router wiring (loaders, params, validation).
+- Pages always use folder structure with internal `hooks/`, `types/`, `components/`, `utils/` as needed.
 - Keep pages thin; delegate business logic to features.
-
-### Page Folder Structure (Always Use Folders)
-
-**All pages must use folder structure, never flat files:**
-
-```
-src/pages/
-├─ ProductsPage/
-│  ├─ ProductsPage.tsx        # Main page component
-│  ├─ index.ts                # Public export
-│  ├─ hooks/                  # Page-specific hooks
-│  │  └─ useProductFilters.ts # URL state management
-│  ├─ types/                  # Page-specific types (URL params, view models)
-│  │  └─ index.ts
-│  └─ components/             # Page-specific composition widgets (optional)
-│     └─ ProductFilters.tsx
-└─ HomePage/
-   ├─ HomePage.tsx            # Simple page - still uses folder
-   └─ index.ts
-```
-
-### When Pages Need Internal Structure
-
-**Pages should have internal structure when they:**
-
-1. **Manage URL state** (search params, filters, pagination)
-   - Create `hooks/usePageFilters.ts` for search param management
-   - Create `types/` for URL param schemas
-
-2. **Orchestrate multiple features**
-   - Create `hooks/usePageData.ts` to combine feature queries
-   - Keep orchestration logic separate from components
-
-3. **Have page-specific components**
-   - Create `components/` for page-specific composition widgets
-   - Components that combine multiple feature components
-
-4. **Transform feature data for presentation**
-   - Create `utils/` for page-specific transformations
-   - View models that don't belong in features
-
-### What Belongs in Pages vs Features
-
-| Concern                   | Page                  | Feature          |
-| ------------------------- | --------------------- | ---------------- |
-| Business logic            | ❌                    | ✅               |
-| API calls                 | ❌                    | ✅               |
-| URL state management      | ✅                    | ❌               |
-| Search params parsing     | ✅                    | ❌               |
-| Multi-feature composition | ✅                    | ❌               |
-| Reusable components       | ❌                    | ✅               |
-| Page-specific widgets     | ✅                    | ❌               |
-| View transformations      | ✅ (if page-specific) | ✅ (if reusable) |
 
 ## 11. Feature Types & Schemas
 
-- Start with `schemas.ts` (singular flat file), expand to `schemas/` (plural folder) when needed.
-- Start with `types.ts` (singular flat file), expand to `types/` (plural folder) when needed.
-- When using folders, organize by concern (e.g., `types/models.ts`, `types/api.ts`).
+- schemas/ folder with files like `productSchema.ts`
+- types/ folder with files like `models.ts`, `api.ts`
 
-## 12. Components Structure
-
-### Global Components (`src/components/`)
+## 12. Components
 
 ```
 components/
-├── ui/                    # Primitives (Button, Input, Card)
-└── composites/            # Complex components (DataTable, forms)
+├── ui/          # Stateless primitives (Button, Input)
+└── composites/  # Logic-heavy wrappers (DataTable)
 ```
 
-- **ui/**: Stateless primitives
-- **composites/**: Logic-heavy wrappers (DataTable using TanStack Table)
-- Structure flexible: flat files (`button.tsx`) or folders (`button/button.tsx` + `index.ts`)
-
-### Feature Components (`src/features/<domain>/components/`)
-
-- Domain-specific composites (uses ui/composites + domain data)
-- **No cross-feature imports**
-- Export selectively
-
-### Page Components (`src/pages/<PageName>/components/` - optional)
-
-- Page-specific composition widgets
-- Use when widget doesn't belong in feature or shared
-
-### Rules
-
-- **Stateless primitives** in ui/ (no React Query, no business logic)
-- **Arrow functions**, `interface` props
-- **No cross-feature imports**
+- Feature components: `src/features/<domain>/components/` (domain-specific, no cross-feature imports)
+- Page components: `src/pages/<PageName>/components/` (page-specific widgets, optional)
 
 ## 13. Stores
 
 - Prefer React Query for server state.
 - Use a client store (e.g., Zustand) only for UI state that isn't derived from queries/props.
-- Domain stores: `src/features/<domain>/store/<name>Store.ts`.
+- Domain stores: `src/features/<domain>/stores/<name>Store.ts`
+- Shared stores (optional): `src/stores/<name>Store.ts` when needed across features
 - Keep stores minimal, serializable, and typed.
 
-## 14. Import Rules & Boundaries
+## 14. Assets & Styles
 
-**Allowed Import Patterns:**
-
-- ✅ Feature → Shared: `import { apiClient } from '@/api'`
-- ✅ Page → Feature: `import { ProductList } from '@/features/products'`
-- ✅ Page → Shared: `import { Button } from '@/components/ui'`
-- ✅ Route → Page: `import { ProductsPage } from '@/pages/ProductsPage'`
-
-**Forbidden Import Patterns:**
-
-- ❌ Feature → Feature: Features must not import from each other
-- ❌ Shared → Feature: Shared code cannot depend on features
-- ❌ Bypassing Public API: `import { ... } from '@/features/products/services'` (must use `@/features/products`)
-
-## 15. Feature Public API
-
-Every feature must export a public API via `index.ts`:
-
-```typescript
-// src/features/products/index.ts
-// Query options - for routes and external hooks
-export { listProductsOptions, productDetailOptions } from './api/queryOptions'
-export { useCreateProduct } from './api/mutations'
-
-// Components - only if reusable outside feature
-export { ProductCard } from './components/ProductCard'
-
-// Types - public contracts
-export type { Product, CreateProductInput } from './types'
-
-// Schemas - for external validation
-export { productSchema } from './schemas'
-
-// NOTE: services/, internal components, utils are NOT exported
-```
-
-**Rules:**
-
-- Only export what's needed outside the feature
-- Services are implementation details - don't export them
-- Internal utilities stay internal
-- Components are exported selectively
-
-## 16. Pages as Composition Layer
-
-Pages orchestrate multiple features:
-
-```tsx
-// src/pages/DashboardPage/DashboardPage.tsx
-import { Card } from '@/components/ui'
-import { useAuth } from '@/features/auth'
-import { OrderList } from '@/features/orders'
-import { ProductList } from '@/features/products'
-
-export const DashboardPage = () => {
-  const { user } = useAuth()
-  return (
-    <div>
-      <h1>Welcome, {user.name}</h1>
-      <Card>
-        <ProductList limit={5} />
-      </Card>
-      <Card>
-        <OrderList limit={5} />
-      </Card>
-    </div>
-  )
-}
-```
-
-- Pages can use multiple features
-- Pages handle feature composition and layout
-- Keep business logic in features, not pages
-
-## 17. Assets & Styles
-
-**Assets Organization:**
-
-- Feature-specific assets: `src/features/<domain>/assets/` (images/icons used only in that feature)
-- Shared assets: `src/assets/` (logos, shared icons, fonts)
-  - `src/assets/images/`
-  - `src/assets/icons/`
-- Static public assets: `public/` (favicon, robots.txt, files referenced in HTML)
+- Feature assets: `src/features/<domain>/assets/`
+- Shared assets: `src/assets/` (images, icons)
+- Public assets: `public/` (favicon, static files)
+- Global styles: `src/styles/`
