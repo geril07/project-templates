@@ -4,7 +4,7 @@ import { API_BASE_URL } from '@/constants/api'
 import {
   ApiResponseError,
   isDataApiErrorResponse,
-} from '@/utils/errors/apiErrorResponse'
+} from '@/utils/apiErrorResponse'
 
 export const apiClient = ky.create({
   prefixUrl: API_BASE_URL,
