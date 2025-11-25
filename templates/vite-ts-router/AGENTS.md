@@ -31,7 +31,7 @@ src/
 │     ├─ components/  # Optional: Feature-specific UI
 │     ├─ hooks/       # Feature-specific hooks (flat or hooks/ if multiple)
 │     ├─ service.ts   # Business logic (or services/ if multiple)
-│     ├─ models.ts    # Core types (or types/ if multiple)
+│     ├─ types.ts    # Core types (or types/ if multiple)
 │     ├─ utils/       # Feature-specific utilities (only if >1)
 │     └─ index.ts     # ⭐ PUBLIC API - barrel re-exports
 ├─ pages/             # Composition layer - orchestrates features
@@ -111,7 +111,7 @@ src/
 
 ## 11. Feature Types & Schemas
 
-- Flat: `models.ts`, `schemas.ts` (or `types/`, `schemas/` if multiple).
+- Flat: `types.ts`, `schemas.ts` (or `types/`, `schemas/` if multiple).
 
 ## 12. Components
 
